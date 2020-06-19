@@ -5,14 +5,21 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <signal.h>
 //SERVER
 FILE *template = NULL;
-char * mail_merge (char * message){
+const char * mail_merge (char * message){
+    char * return_message;
+
     char input[128];
     char cust_data[9][30];
     int  element = 0;
     char *next;
     char ch;
+
+    char send_message[BUFSIZ];
+    strcpy(send_message,"");
+
     if ( template != NULL )
     {
         // read in the customers until we're done
@@ -44,31 +51,29 @@ char * mail_merge (char * message){
                     case '$':
                         ch = input[element++];
                         if ( ch == '$' ){
-                            printf( "$" );
                             strncat(send_message,&ch,1);}
                         else{
-                            printf( "%s", cust_data[atoi( &ch )] );
-                            strcat(send_message,cust_data[atoi( &ch )]);}
+                            strcat(send_message,cust_data[atoi( &ch )]);
+                        }
                         break;
 
                     default:
-                        printf( "%c", ch );
+
                         strncat(send_message,&ch,1);
                         break;
                 }
 
                 ch = input[element++];
             }
-            printf( "\n" );
+
             strcat (send_message,"\n");
         }
 
-
-        printf("%s\n",send_message);
+        return_message = send_message;
         fclose( template );
     }
 
-    return input;
+    return return_message;
 }
 
 void sighup_handler(int num){
@@ -86,6 +91,8 @@ int main(int argc, char* argv[])
     char client_message[2];
     char message_received[BUFSIZ];
     strcpy(message_received,"");
+    char message_merged[BUFSIZ];
+    strcpy(message_merged,"");
 
     char * serverfifo = "./3430server";
     char * clientfifo = "./3430client6";
@@ -106,7 +113,7 @@ int main(int argc, char* argv[])
 
     while(!terminate)
     {
-        signal(SIGHUP,sighup_handler)
+        signal(SIGHUP,sighup_handler);
         result = read(fds[0], client_message, 1);
         if (result < 0) {
             perror("ERROR: Error reading from pipe");
@@ -124,7 +131,7 @@ int main(int argc, char* argv[])
         else if ('\0' == client_message[strlen(client_message)-1]) {
             printf("\n");
             printf("message received: %s\n",message_received);
-
+            printf("After merging : \n%s\n", mail_merge(message_received));
             strcpy(message_received,"");
         }
         else {

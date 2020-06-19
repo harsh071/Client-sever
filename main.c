@@ -3,8 +3,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
-#include <stdlib.h>    // exit
-#include <stdbool.h>   // bool
+#include <stdlib.h>
+#include <stdbool.h>
 
 //CLIENT
 int main(int argc, char* argv[])
@@ -57,7 +57,8 @@ int main(int argc, char* argv[])
                             strncat(send_message,&ch,1);}
                         else{
                             printf( "%s", cust_data[atoi( &ch )] );
-                            strcat(send_message,cust_data[atoi( &ch )]);}
+                            strcat(send_message,cust_data[atoi( &ch )]);
+                        }
                         break;
 
                     default:
