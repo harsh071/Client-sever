@@ -82,18 +82,22 @@ void sighup_handler(int num){
 
 int main(int argc, char* argv[])
 {
-
+    // Open the template.
     template = fopen( "template.txt", "r" );
-
+    //terminate the loop.
     bool terminate = false;
-    int fds[2];
+    int fds[2]; // File Description.
+    int errno;
 
+    // Message received from the client.
     char client_message[2];
     char message_received[BUFSIZ];
     strcpy(message_received,"");
+
+    // Message that has to be merged.
     char message_merged[BUFSIZ];
     strcpy(message_merged,"");
-
+    // FIFO's for communication
     char * serverfifo = "./3430server";
     char * clientfifo = "./3430client6";
 
@@ -104,7 +108,8 @@ int main(int argc, char* argv[])
     }
 
     fds[0]=open(serverfifo,O_RDONLY);
-    //fds[1]=open(clientfifo,O_WRONLY);
+    fds[1]=open(clientfifo,O_WRONLY);
+
     if (fds[0] < 0) {
         perror("Unable to open named pipe");
         exit(EXIT_FAILURE);
@@ -131,8 +136,16 @@ int main(int argc, char* argv[])
         else if ('\0' == client_message[strlen(client_message)-1]) {
             printf("\n");
             printf("message received: %s\n",message_received);
-            printf("After merging : \n%s\n", mail_merge(message_received));
+
+            strcpy(message_merged, mail_merge(message_received));
+            message_merged[strlen(message_merged)-1] = '\0';
+            errno = write(fds[1], &message_merged, strlen(message_merged)+1);
+            if (errno < 0) {
+                perror("ERROR: Error writing to pipe");
+            }
+            write(fds[1], "\a", 1);
             strcpy(message_received,"");
+            strcpy(message_merged,"");
         }
         else {
             printf("%c", client_message[0]);
