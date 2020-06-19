@@ -90,6 +90,8 @@ int main(int argc, char* argv[])
                         strncat(message_received,&append,1);
                     }
                 }
+                strcpy(message_received,"");
+                strcpy(server_message,"");
             }
         }
         else {
@@ -112,11 +114,11 @@ int main(int argc, char* argv[])
     }
     /* read from Standard input and store it in the fd */
 
-//    unlink(clientfifo);
-//    close(fds[0]);
-//    close(fds[1]);
+    unlink(clientfifo);
+    close(fds[0]);
+    close(fds[1]);
 
-    if (killserver)
-        write(fds[0], "\a", 1);
+    //if (killserver)
+    //write(fds[0], "\a", 1);
     return 0;
 }

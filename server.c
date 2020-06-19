@@ -70,13 +70,14 @@ const char * mail_merge (char * message){
         }
 
         return_message = send_message;
-        fclose( template );
+
     }
 
     return return_message;
 }
 
 void sighup_handler(int num){
+    fclose( template );
     template = fopen( "template.txt", "r" );
 }
 
@@ -127,8 +128,8 @@ int main(int argc, char* argv[])
         else if (result == 0){
             // last client disconnected.
             // end of file
-            printf("End of file");
-            terminate = true;
+            // printf("End of file");
+
         } else if ('\a' == client_message[0]) {
             // bell to quit
             terminate = true;
@@ -143,7 +144,7 @@ int main(int argc, char* argv[])
             if (errno < 0) {
                 perror("ERROR: Error writing to pipe");
             }
-            write(fds[1], "\a", 1);
+            //write(fds[1], "\a", 1);
             strcpy(message_received,"");
             strcpy(message_merged,"");
         }
