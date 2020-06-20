@@ -8,7 +8,13 @@
 #include <signal.h>
 #include "protocol.h"
 //SERVER
+
+
 FILE *template = NULL;
+int fds[2]; // File Description.
+char * serverfifo = "./3430server";
+bool terminate = false;
+
 const char * mail_merge (char * message){
     char * return_message;
 
@@ -82,14 +88,20 @@ void sighup_handler(int num){
     fclose( template );
     template = fopen( "template.txt", "r" );
 }
+void sighterm_handler(int num){
+    close(fds[0]);
+    close(fds[1]);
+    unlink(serverfifo);
+    terminate = true;
+}
 
 int main(int argc, char* argv[])
 {
     // Open the template.
     template = fopen( "template.txt", "r" );
     //terminate the loop.
-    bool terminate = false;
-    int fds[2]; // File Description.
+
+
     int errno;
 
     // Message received from the client.
@@ -105,7 +117,7 @@ int main(int argc, char* argv[])
     char decoded_message[BUFSIZ];
     strcpy(decoded_message,"");
     // FIFO's for communication
-    char * serverfifo = "./3430server";
+
     char clientfifo[14];
 
     int result = mkfifo(serverfifo,0666);
@@ -115,7 +127,7 @@ int main(int argc, char* argv[])
     }
 
     fds[0]=open(serverfifo,O_RDONLY);
-
+    signal(SIGINT,sighterm_handler);
     if (fds[0] < 0) {
         perror("Unable to open named pipe");
         exit(EXIT_FAILURE);
@@ -125,10 +137,12 @@ int main(int argc, char* argv[])
     while(!terminate)
     {
         signal(SIGHUP,sighup_handler);
+        signal(SIGINT,sighterm_handler);
+        signal(SIGTERM,sighterm_handler);
         result = read(fds[0], client_message, 1);
         if (result < 0) {
             perror("ERROR: Error reading from pipe");
-            exit(EXIT_FAILURE);
+            //exit(EXIT_FAILURE);
         }
         else if (result == 0){
             // last client disconnected.
