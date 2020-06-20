@@ -33,7 +33,6 @@ int main(int argc, char* argv[])
     int fifo = mkfifo(clientfifo, 0666);
 
     fds[0] = open(serverfifo, O_WRONLY);
-    fds[1] = open(clientfifo, O_RDONLY);
     if (fds[1] < 0) {
         perror("Unable to open named pipe");
         exit(EXIT_FAILURE);
@@ -62,6 +61,8 @@ int main(int argc, char* argv[])
                     perror("ERROR: Error writing to pipe");
                 }
                 terminate = false;
+
+                fds[1] = open(clientfifo, O_RDONLY);
 
                 while(!terminate)
                 {
@@ -114,9 +115,9 @@ int main(int argc, char* argv[])
     }
     /* read from Standard input and store it in the fd */
 
-    unlink(clientfifo);
     close(fds[0]);
     close(fds[1]);
+    unlink(clientfifo);
 
     //if (killserver)
     //write(fds[0], "\a", 1);

@@ -115,7 +115,6 @@ int main(int argc, char* argv[])
     }
 
     fds[0]=open(serverfifo,O_RDONLY);
-    fds[1]=open(clientfifo,O_WRONLY);
 
     if (fds[0] < 0) {
         perror("Unable to open named pipe");
@@ -143,19 +142,21 @@ int main(int argc, char* argv[])
         else if ('\0' == client_message[strlen(client_message)-1]) {
             printf("\n");
             printf("message received: %s\n",message_received);
-            strcpy(decoded_message,"");
-            strcpy(decode_message,process_client_message(message_received)); // client get
+
             int client_number = get_client_number(message_received);
             if(client_number != -1) {
-                snprintf(clientfifo, 14, "./3430client%d", client_number);
-                fds[1] = open(, O_WRONLY);
+                strcpy(decoded_message,decode_message(message_received)); // client get
 
-                strcpy(message_merged, mail_merge(decode_message));
+                snprintf(clientfifo, 14, "./3430client%d", client_number);
+                fds[1] = open(clientfifo, O_WRONLY);
+
+                strcpy(message_merged, mail_merge(decoded_message));
                 message_merged[strlen(message_merged) - 1] = '\0';
                 errno = write(fds[1], &message_merged, strlen(message_merged) + 1);
                 if (errno < 0) {
                     perror("ERROR: Error writing to pipe");
                 }
+                close(fds[1]);
                 //write(fds[1], "\a", 1);
                 strcpy(message_received, "");
                 strcpy(message_merged, "");
@@ -169,7 +170,8 @@ int main(int argc, char* argv[])
             strncat(message_received,&append,1);
         }
     }
-
+    close(fds[0]);
+    close(fds[1]);
     unlink(serverfifo);
 
     return 0;
