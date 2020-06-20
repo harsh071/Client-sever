@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdlib.h>    // exit
 #include <stdbool.h>   // bool
-
+#include "protocol.h"
 //CLIENT
 int main(int argc, char* argv[])
 {

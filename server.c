@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <signal.h>
+#include "protocol.h"
 //SERVER
 FILE *template = NULL;
 const char * mail_merge (char * message){
@@ -19,7 +20,7 @@ const char * mail_merge (char * message){
 
     char send_message[BUFSIZ];
     strcpy(send_message,"");
-
+    int verify = 0;
     if ( template != NULL )
     {
         // read in the customers until we're done
@@ -32,45 +33,46 @@ const char * mail_merge (char * message){
             strcpy( cust_data[element], next );
 
             next = strtok( NULL, "|" );
+            verify ++;
         }
 
+        if(verify != 9){
+            strcat(send_message,"Bad Message");
+            return_message = send_message;
+        }else {
 
+            // generate the output by reading and parsing the template
+            // instead of reading it into a buffer it just re-reads the file each time
+            rewind(template);
 
-        // generate the output by reading and parsing the template
-        // instead of reading it into a buffer it just re-reads the file each time
-        rewind( template );
+            while (fgets(input, 128, template) != NULL) {
+                element = 0;
+                ch = input[element++];
+                while (ch != '\n' && element < 128) {
+                    switch (ch) {
+                        case '$':
+                            ch = input[element++];
+                            if (ch == '$') {
+                                strncat(send_message, &ch, 1);
+                            } else {
+                                strcat(send_message, cust_data[atoi(&ch)]);
+                            }
+                            break;
 
-        while ( fgets( input, 128, template ) != NULL )
-        {
-            element = 0;
-            ch = input[element++];
-            while ( ch != '\n' && element < 128 )
-            {
-                switch( ch )
-                {
-                    case '$':
-                        ch = input[element++];
-                        if ( ch == '$' ){
-                            strncat(send_message,&ch,1);}
-                        else{
-                            strcat(send_message,cust_data[atoi( &ch )]);
-                        }
-                        break;
+                        default:
 
-                    default:
+                            strncat(send_message, &ch, 1);
+                            break;
+                    }
 
-                        strncat(send_message,&ch,1);
-                        break;
+                    ch = input[element++];
                 }
 
-                ch = input[element++];
+                strcat(send_message, "\n");
             }
 
-            strcat (send_message,"\n");
+            return_message = send_message;
         }
-
-        return_message = send_message;
-
     }
 
     return return_message;
@@ -98,9 +100,13 @@ int main(int argc, char* argv[])
     // Message that has to be merged.
     char message_merged[BUFSIZ];
     strcpy(message_merged,"");
+
+    // Message that has to be decoded.
+    char decoded_message[BUFSIZ];
+    strcpy(decoded_message,"");
     // FIFO's for communication
     char * serverfifo = "./3430server";
-    char * clientfifo = "./3430client6";
+    char clientfifo[14];
 
     int result = mkfifo(serverfifo,0666);
     if (result) {
@@ -137,16 +143,25 @@ int main(int argc, char* argv[])
         else if ('\0' == client_message[strlen(client_message)-1]) {
             printf("\n");
             printf("message received: %s\n",message_received);
+            strcpy(decoded_message,"");
+            strcpy(decode_message,process_client_message(message_received)); // client get
+            int client_number = get_client_number(message_received);
+            if(client_number != -1) {
+                snprintf(clientfifo, 14, "./3430client%d", client_number);
+                fds[1] = open(, O_WRONLY);
 
-            strcpy(message_merged, mail_merge(message_received));
-            message_merged[strlen(message_merged)-1] = '\0';
-            errno = write(fds[1], &message_merged, strlen(message_merged)+1);
-            if (errno < 0) {
-                perror("ERROR: Error writing to pipe");
+                strcpy(message_merged, mail_merge(decode_message));
+                message_merged[strlen(message_merged) - 1] = '\0';
+                errno = write(fds[1], &message_merged, strlen(message_merged) + 1);
+                if (errno < 0) {
+                    perror("ERROR: Error writing to pipe");
+                }
+                //write(fds[1], "\a", 1);
+                strcpy(message_received, "");
+                strcpy(message_merged, "");
+            } else {
+                printf("error in reading message\n");
             }
-            //write(fds[1], "\a", 1);
-            strcpy(message_received,"");
-            strcpy(message_merged,"");
         }
         else {
             printf("%c", client_message[0]);
