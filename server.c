@@ -165,7 +165,10 @@ int main(int argc, char* argv[])
                 fds[1] = open(clientfifo, O_WRONLY);
 
                 strcpy(message_merged, mail_merge(decoded_message));
-                message_merged[strlen(message_merged) - 1] = '\0';
+                message_merged[strlen(message_merged)] = '\0';
+
+                strcpy(message_merged, process_server_message(message_merged));
+
                 errno = write(fds[1], &message_merged, strlen(message_merged) + 1);
                 if (errno < 0) {
                     perror("ERROR: Error writing to pipe");

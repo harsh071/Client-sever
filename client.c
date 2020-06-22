@@ -23,12 +23,16 @@ int main(int argc, char* argv[])
     char * serverfifo = "./3430server";
     char clientfifo[14];
 
+    int client_number;
+
     /* Get the client number and make a client fifo */
     int option;
     while((option = getopt(argc,argv,"c:") != -1)){
         snprintf(clientfifo,14,"./3430client%s",optarg);
-    }
 
+    }
+    client_number = clientfifo[12] - '0';
+    printf("numb: %d,  %s\ns",client_number,clientfifo);
     /* making a client FIFO */
     int fifo = mkfifo(clientfifo, 0666);
 
@@ -41,14 +45,18 @@ int main(int argc, char* argv[])
     while(!done){
         // input from stdin
         result = fgets((char*)&server_message,BUFSIZ,stdin);
+        strcpy(server_message, process_client_message(server_message, client_number));
         // TODO: Do string processing
 
         if (result != NULL) {
             // send this character to the FIFO
             // sends with \n, replace with \0
-            server_message[strlen(server_message)-1] = '\0';
-            if (strcmp(server_message, "exit") == 0)
+            server_message[strlen(server_message)] = '\0';
+
+            printf(":%s:",server_message);
+            if (strcmp(server_message, "Bad Message") == 0)
             {
+
                 done = true;
                 killserver = true;
             }
@@ -82,6 +90,7 @@ int main(int argc, char* argv[])
                     }
                     else if ('\0' == client_message[strlen(client_message)-1]) {
                         printf("\n");
+                        strcpy(message_received, decode_message(message_received));
                         printf("message received: %s\n",message_received);
                         terminate = true;
                     }
